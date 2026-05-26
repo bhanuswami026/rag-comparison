@@ -1,0 +1,5 @@
+Simple RAG retrieves the most relevant text chunks from a vector database and asks a language model to answer using those chunks.
+
+Graph RAG adds lightweight relationships between entities found in the text. It can expand retrieval by looking at neighboring entities and the chunks connected to them.
+
+Agentic RAG breaks a complex question into smaller subquestions, retrieves evidence for each subquestion, and then synthesizes a final answer.
