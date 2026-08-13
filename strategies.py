@@ -396,22 +396,14 @@ def build_agentic_synthesis_prompt(
     subquestion_results: list[dict[str, Any]],
 ) -> str:
     trace_blocks = []
-    seen_chunk_ids = set()
     
     for item in subquestion_results:
-        # Filter chunks to prevent duplicate context dilution
-        unique_chunks = []
-        for chunk in item["retrieved_chunks"]:
-            if chunk["id"] not in seen_chunk_ids:
-                seen_chunk_ids.add(chunk["id"])
-                unique_chunks.append(chunk)
-                
         trace_blocks.append(
             "\n".join(
                 [
                     f"Subquestion {item['index']}: {item['subquestion']}",
-                    "Distinct retrieved context:",
-                    format_context(unique_chunks) if unique_chunks else "No new distinct context retrieved for this subquestion.",
+                    "Retrieved context:",
+                    format_context(item["retrieved_chunks"]),
                 ]
             )
         )
@@ -419,8 +411,8 @@ def build_agentic_synthesis_prompt(
     trace_text = "\n\n===\n\n".join(trace_blocks)
     return f"""You are synthesizing an Agentic RAG answer.
 
-Synthesize a concise, direct, and well-structured answer using the subquestion evidence below.
-Avoid unnecessary filler, long introductions, or repetitive summaries. Cite source filenames or chunk IDs where appropriate.
+Synthesize a clear, comprehensive, and direct answer using the subquestion evidence below.
+Do not invent details outside the context. Cite source filenames or chunk IDs where appropriate.
 
 Original question:
 {query}
@@ -441,10 +433,9 @@ def agentic_rag_answer(
     subquestions = decomposition["subquestions"]
 
     subquestion_results = []
-    sub_k = max(2, min(top_k, 3))
     
     for index, subquestion in enumerate(subquestions, start=1):
-        retrieved_chunks = vector_store.search(subquestion, top_k=sub_k)
+        retrieved_chunks = vector_store.search(subquestion, top_k=top_k)
         subquestion_results.append(
             {
                 "index": index,
@@ -458,7 +449,7 @@ def agentic_rag_answer(
         provider_name=provider_name,
         prompt=synthesis_prompt,
         temperature=0.2,
-        max_output_tokens=450,
+        max_output_tokens=700,
     )
 
     return {
