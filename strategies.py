@@ -409,13 +409,15 @@ def build_agentic_synthesis_prompt(
         )
 
     trace_text = "\n\n===\n\n".join(trace_blocks)
-    return f"""You are an Agentic Reasoning Engine performing multi-step analysis and synthesis.
+    return f"""You are an Agentic Reasoning Engine synthesizing a presentable executive analysis.
 
-You MUST execute an explicit step-by-step reasoning process to answer the original question:
+Use the subquestion evidence below to construct a clean, elegant, and non-repetitive response.
 
-- Step 1 (Identification & Metric Extraction): Identify the exact categories, percentage changes, or items requested, citing specific figures and source chunk IDs.
-- Step 2 (Conditional & Comparative Analysis): Perform the explicit mathematical comparisons, conditional evaluations, or cause-and-effect reasoning required by the query.
-- Step 3 (Final Agentic Synthesis): Synthesize a definitive, logical summary explaining how these factors combine to impact the overall outcome.
+Formatting & Presentation Rules:
+- Do NOT repeat the same figures across multiple sections. State each metric once.
+- Structure your response into two clean, presentable sections:
+  1. **Key Metrics & Drivers:** Concise bullet points identifying the requested categories, percentage changes, specific product drivers, and chunk IDs.
+  2. **Comparative Impact & Synthesis:** 2 to 3 sentences detailing the mathematical net impact (e.g., dollar gain vs dollar loss) and overall strategic takeaway.
 
 Original question:
 {query}
@@ -423,7 +425,7 @@ Original question:
 Subquestion retrieval trace & evidence:
 {trace_text}
 
-Step-by-Step Agentic Analysis & Answer:"""
+Executive Answer:"""
 
 
 def agentic_rag_answer(
