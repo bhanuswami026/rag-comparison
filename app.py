@@ -9,7 +9,11 @@ from config import (
     DEFAULT_TOP_K,
     EMBEDDING_MODELS,
     LLM_PROVIDERS,
+    MAX_CHUNK_OVERLAP,
+    MAX_CHUNK_SIZE,
     MAX_TOP_K,
+    MIN_CHUNK_OVERLAP,
+    MIN_CHUNK_SIZE,
     MIN_TOP_K,
 )
 from ingestion import ingest_documents
@@ -120,7 +124,24 @@ with st.sidebar:
     )
 
     st.divider()
-    st.subheader("Ingestion")
+    st.subheader("Ingestion & Chunking")
+
+    chunk_size = st.slider(
+        "Chunk size (chars)",
+        min_value=MIN_CHUNK_SIZE,
+        max_value=MAX_CHUNK_SIZE,
+        value=DEFAULT_CHUNK_SIZE,
+        step=50,
+    )
+
+    chunk_overlap = st.slider(
+        "Chunk overlap (chars)",
+        min_value=MIN_CHUNK_OVERLAP,
+        max_value=MAX_CHUNK_OVERLAP,
+        value=DEFAULT_CHUNK_OVERLAP,
+        step=10,
+    )
+
     uploaded_files = st.file_uploader(
         "Upload documents",
         type=["txt", "md", "pdf"],
@@ -134,8 +155,8 @@ try:
     documents, chunks = ingest_documents(
         uploaded_files=uploaded_files,
         use_sample_doc=use_sample_doc,
-        chunk_size=DEFAULT_CHUNK_SIZE,
-        chunk_overlap=DEFAULT_CHUNK_OVERLAP,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
     )
     ingestion_error = None
 except Exception as exc:
@@ -192,8 +213,8 @@ with settings_col:
     st.write(f"LLM model: `{provider_details['model']}`")
     st.write(f"Provider API key: `{provider_details['api_key_env']}`")
     st.write(f"Top-k: `{top_k}`")
-    st.write(f"Chunk size: `{DEFAULT_CHUNK_SIZE}`")
-    st.write(f"Chunk overlap: `{DEFAULT_CHUNK_OVERLAP}`")
+    st.write(f"Chunk size: `{chunk_size}`")
+    st.write(f"Chunk overlap: `{chunk_overlap}`")
     st.write(f"Uploaded files: `{len(uploaded_files or [])}`")
     st.write(f"Sample doc: `{'enabled' if use_sample_doc else 'disabled'}`")
     st.write(f"Rebuild requested: `{'yes' if rebuild_index else 'no'}`")
