@@ -228,10 +228,6 @@ with query_col:
 st.divider()
 
 simple_col, graph_col, agentic_col = st.columns(3)
-retrieved_chunks = []
-if query.strip() and vector_store is not None:
-    retrieved_chunks = vector_store.search(query, top_k=top_k)
-
 simple_result = None
 simple_error = None
 graph_preview = None
@@ -239,6 +235,7 @@ graph_result = None
 graph_error = None
 agentic_result = None
 agentic_error = None
+
 if query.strip() and vector_store is not None and chunks:
     graph_preview = graph_augmented_retrieval(
         query=query,
@@ -246,6 +243,16 @@ if query.strip() and vector_store is not None and chunks:
         vector_store=vector_store,
         top_k=top_k,
     )
+
+simple_context_k = top_k
+if graph_preview:
+    simple_context_k = max(top_k, len(graph_preview["augmented_chunks"]))
+if vector_store is not None:
+    simple_context_k = min(simple_context_k, vector_store.size)
+
+retrieved_chunks = []
+if query.strip() and vector_store is not None:
+    retrieved_chunks = vector_store.search(query, top_k=simple_context_k)
 
 if run_comparison and query.strip():
     if vector_store is None:
@@ -259,7 +266,7 @@ if run_comparison and query.strip():
                     query=query,
                     vector_store=vector_store,
                     provider_name=llm_provider,
-                    top_k=top_k,
+                    top_k=simple_context_k,
                 )
                 retrieved_chunks = simple_result["retrieved_chunks"]
         except LLMProviderError as exc:
@@ -298,6 +305,8 @@ if run_comparison and query.strip():
 with simple_col:
     st.subheader("Simple RAG")
     st.write("Baseline vector retrieval and answer synthesis.")
+    if query.strip() and vector_store is not None:
+        st.caption(f"Context budget: {simple_context_k} chunks, matched to Graph RAG.")
     with st.expander("Retrieved chunks", expanded=False):
         if retrieved_chunks:
             for result in retrieved_chunks:
@@ -321,8 +330,13 @@ with simple_col:
 with graph_col:
     st.subheader("Graph RAG")
     st.write("Vector retrieval augmented with lightweight entity neighbors.")
+    active_graph = graph_result or graph_preview
+    if active_graph:
+        st.caption(
+            f"Context budget: {len(active_graph['augmented_chunks'])} chunks "
+            f"({len(active_graph['base_chunks'])} vector + {len(active_graph['graph_chunks'])} graph)."
+        )
     with st.expander("Graph relationships", expanded=False):
-        active_graph = graph_result or graph_preview
         if active_graph and active_graph["relationships"]:
             st.dataframe(active_graph["relationships"], use_container_width=True)
         elif active_graph:
@@ -335,7 +349,6 @@ with graph_col:
         else:
             st.write("Ingest documents to build the entity graph.")
     with st.expander("Retrieved chunks", expanded=False):
-        active_graph = graph_result or graph_preview
         if active_graph:
             st.markdown("**Base vector chunks**")
             for result in active_graph["base_chunks"]:

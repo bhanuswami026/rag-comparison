@@ -95,14 +95,25 @@ def build_entity_graph(chunks: list[dict[str, Any]]) -> nx.Graph:
             graph.add_node(entity_id, label=entity, kind="entity")
             graph.add_edge(chunk_id, entity_id, relation="mentions")
 
-        for left_index, left_entity in enumerate(entities):
-            for right_entity in entities[left_index + 1 :]:
-                graph.add_edge(
-                    entity_node_id(left_entity),
-                    entity_node_id(right_entity),
-                    relation="co-occurs",
-                    chunk_id=chunk["id"],
-                )
+        triplets = chunk.get("triplets", [])
+        for triplet in triplets:
+            sub_id = entity_node_id(triplet["subject"])
+            obj_id = entity_node_id(triplet["object"])
+            rel = triplet["relation"]
+            
+            graph.add_node(sub_id, label=triplet["subject"], kind="entity")
+            graph.add_node(obj_id, label=triplet["object"], kind="entity")
+            graph.add_edge(sub_id, obj_id, relation=rel, chunk_id=chunk["id"])
+
+        if not triplets:
+            for left_index, left_entity in enumerate(entities):
+                for right_entity in entities[left_index + 1 :]:
+                    graph.add_edge(
+                        entity_node_id(left_entity),
+                        entity_node_id(right_entity),
+                        relation="CO-OCCURS",
+                        chunk_id=chunk["id"],
+                    )
 
     return graph
 
@@ -127,15 +138,38 @@ def graph_relationship_rows(
             seen_edges.add(edge_key)
 
             edge_data = graph.get_edge_data(entity_id, neighbor_id) or {}
+            rel = edge_data.get("relation", "RELATED_TO")
+            if rel == "mentions":
+                continue
+
             rows.append(
                 {
                     "from": graph.nodes[entity_id].get("label", entity_id),
-                    "relation": edge_data.get("relation", "related"),
+                    "relation": rel,
                     "to": graph.nodes[neighbor_id].get("label", neighbor_id),
                 }
             )
             if len(rows) >= max_rows:
                 return rows
+
+    if not rows:
+        for u, v, data in graph.edges(data=True):
+            rel = data.get("relation", "RELATED_TO")
+            if rel == "mentions":
+                continue
+            edge_key = tuple(sorted([u, v]))
+            if edge_key in seen_edges:
+                continue
+            seen_edges.add(edge_key)
+            rows.append(
+                {
+                    "from": graph.nodes[u].get("label", u),
+                    "relation": rel,
+                    "to": graph.nodes[v].get("label", v),
+                }
+            )
+            if len(rows) >= max_rows:
+                break
 
     return rows
 

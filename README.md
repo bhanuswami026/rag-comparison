@@ -52,3 +52,9 @@ This project intentionally avoids Docker, Neo4j, agent frameworks, and enterpris
 4. Review retrieved chunks, graph relationships, reasoning trace, and prompts in each column.
 
 The first run for an embedding model may download model files from Hugging Face. Subsequent runs should reuse the local cache.
+
+## Comparison Fairness
+
+Graph RAG starts with the selected vector `top_k`, then may add graph-neighbor chunks. To keep Simple RAG comparable, the app dynamically matches Simple RAG's chunk count to the total number of chunks used by Graph RAG for the same query.
+
+Example: if Graph RAG uses `4` vector chunks plus `2` graph-neighbor chunks, Simple RAG retrieves the top `6` vector chunks.
