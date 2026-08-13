@@ -365,9 +365,13 @@ def fallback_subquestions(query: str) -> list[str]:
 
 
 def decompose_query(query: str, provider_name: str, max_questions: int = 4) -> dict[str, Any]:
-    prompt = f"""Break the question into 2 to {max_questions} focused retrieval subquestions.
+    prompt = f"""You are an advanced RAG query decomposition agent.
+Break the following complex user question into 2 to {max_questions} distinct, highly specific, and non-overlapping retrieval subquestions.
 
-Return only the subquestions as a numbered list. Do not answer them.
+Requirements:
+- Each subquestion must target a completely different entity, metric, time period, or perspective mentioned in the original question.
+- Subquestions must be self-contained and search-ready.
+- Return ONLY a numbered list of subquestions. Do not answer them.
 
 Question:
 {query}"""
@@ -392,27 +396,37 @@ def build_agentic_synthesis_prompt(
     subquestion_results: list[dict[str, Any]],
 ) -> str:
     trace_blocks = []
+    seen_chunk_ids = set()
+    
     for item in subquestion_results:
+        # Filter chunks to prevent duplicate context dilution
+        unique_chunks = []
+        for chunk in item["retrieved_chunks"]:
+            if chunk["id"] not in seen_chunk_ids:
+                seen_chunk_ids.add(chunk["id"])
+                unique_chunks.append(chunk)
+                
         trace_blocks.append(
             "\n".join(
                 [
                     f"Subquestion {item['index']}: {item['subquestion']}",
-                    "Retrieved context:",
-                    format_context(item["retrieved_chunks"]),
+                    "Distinct retrieved context:",
+                    format_context(unique_chunks) if unique_chunks else "No new distinct context retrieved for this subquestion.",
                 ]
             )
         )
 
     trace_text = "\n\n===\n\n".join(trace_blocks)
-    return f"""You are synthesizing an Agentic RAG answer.
+    return f"""You are synthesizing a comprehensive Agentic RAG answer.
 
-Use the subquestions and their retrieved evidence to answer the original question.
-Do not invent details outside the retrieved context. Cite source filenames or chunk IDs.
+Use the decomposed subquestions and their distinct retrieved evidence to answer the original question thoroughly.
+Provide a structured, multi-part response that directly addresses each subquestion's findings.
+Do not invent details outside the retrieved context. Cite source filenames or chunk IDs where appropriate.
 
 Original question:
 {query}
 
-Subquestion retrieval trace:
+Subquestion retrieval trace & distinct evidence:
 {trace_text}
 
 Final answer:"""
@@ -428,8 +442,11 @@ def agentic_rag_answer(
     subquestions = decomposition["subquestions"]
 
     subquestion_results = []
+    # Use top_k per subquestion but capped reasonably to avoid token explosion
+    sub_k = max(2, min(top_k, 3))
+    
     for index, subquestion in enumerate(subquestions, start=1):
-        retrieved_chunks = vector_store.search(subquestion, top_k=top_k)
+        retrieved_chunks = vector_store.search(subquestion, top_k=sub_k)
         subquestion_results.append(
             {
                 "index": index,
