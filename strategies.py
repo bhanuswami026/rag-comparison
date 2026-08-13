@@ -417,19 +417,18 @@ def build_agentic_synthesis_prompt(
         )
 
     trace_text = "\n\n===\n\n".join(trace_blocks)
-    return f"""You are synthesizing a comprehensive Agentic RAG answer.
+    return f"""You are synthesizing an Agentic RAG answer.
 
-Use the decomposed subquestions and their distinct retrieved evidence to answer the original question thoroughly.
-Provide a structured, multi-part response that directly addresses each subquestion's findings.
-Do not invent details outside the retrieved context. Cite source filenames or chunk IDs where appropriate.
+Synthesize a concise, direct, and well-structured answer using the subquestion evidence below.
+Avoid unnecessary filler, long introductions, or repetitive summaries. Cite source filenames or chunk IDs where appropriate.
 
 Original question:
 {query}
 
-Subquestion retrieval trace & distinct evidence:
+Subquestion retrieval trace:
 {trace_text}
 
-Final answer:"""
+Answer:"""
 
 
 def agentic_rag_answer(
@@ -442,7 +441,6 @@ def agentic_rag_answer(
     subquestions = decomposition["subquestions"]
 
     subquestion_results = []
-    # Use top_k per subquestion but capped reasonably to avoid token explosion
     sub_k = max(2, min(top_k, 3))
     
     for index, subquestion in enumerate(subquestions, start=1):
@@ -460,7 +458,7 @@ def agentic_rag_answer(
         provider_name=provider_name,
         prompt=synthesis_prompt,
         temperature=0.2,
-        max_output_tokens=800,
+        max_output_tokens=450,
     )
 
     return {
