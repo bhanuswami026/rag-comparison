@@ -409,18 +409,21 @@ def build_agentic_synthesis_prompt(
         )
 
     trace_text = "\n\n===\n\n".join(trace_blocks)
-    return f"""You are synthesizing an Agentic RAG answer.
+    return f"""You are an Agentic Reasoning Engine performing multi-step analysis and synthesis.
 
-Synthesize a clear, comprehensive, and direct answer using the subquestion evidence below.
-Do not invent details outside the context. Cite source filenames or chunk IDs where appropriate.
+You MUST execute an explicit step-by-step reasoning process to answer the original question:
+
+- Step 1 (Identification & Metric Extraction): Identify the exact categories, percentage changes, or items requested, citing specific figures and source chunk IDs.
+- Step 2 (Conditional & Comparative Analysis): Perform the explicit mathematical comparisons, conditional evaluations, or cause-and-effect reasoning required by the query.
+- Step 3 (Final Agentic Synthesis): Synthesize a definitive, logical summary explaining how these factors combine to impact the overall outcome.
 
 Original question:
 {query}
 
-Subquestion retrieval trace:
+Subquestion retrieval trace & evidence:
 {trace_text}
 
-Answer:"""
+Step-by-Step Agentic Analysis & Answer:"""
 
 
 def agentic_rag_answer(
