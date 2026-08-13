@@ -278,18 +278,18 @@ def build_graph_rag_prompt(
     if not relationship_text:
         relationship_text = "No graph relationships were available."
 
-    return f"""You are answering a research-project question with Graph RAG.
+    return f"""You are answering a question using Graph RAG.
 
-Use the retrieved chunks and the lightweight entity relationships. Explain when graph neighbors added useful context.
-If the context is not enough, say what is missing. Cite source filenames or chunk IDs.
+Synthesize a clear, direct, and well-structured answer using the retrieved document chunks and entity relationships provided below.
+Do not invent details outside the context. Cite source filenames or chunk IDs where appropriate.
 
 Question:
 {query}
 
-Graph relationships used:
+Entity relationships:
 {relationship_text}
 
-Retrieved and graph-augmented context:
+Retrieved context:
 {context}
 
 Answer:"""
